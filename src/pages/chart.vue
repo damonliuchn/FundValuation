@@ -39,14 +39,13 @@
     import 'echarts/lib/component/visualMap'
     import 'echarts/theme/macarons.js'
 
-    import jquery from 'jquery';
-
     export default {
         data() {
             return {
                 input: '',
                 xxData: [],
                 yyData: [],
+                result:{},
                 loading: true,
                 bar: {
                     title: {
@@ -55,9 +54,6 @@
                     tooltip : {
                         trigger: 'axis'
                     },
-//                    legend: {
-//                        data: ['半月', '月','季', '半年','年']
-//                    },
                     xAxis: {
                         data: []
                     },
@@ -91,45 +87,10 @@
             if (!id) {
                 id = "110011"
             }
-            var url = "http://fund.eastmoney.com/" + id + ".html?spm=search"
-            this.$http.get('http://' + window.document.location.host + '/forward_get?url=' + url)
+            this.$http.get('http://' + window.document.location.host + '/data?fundId=' + id)
                 .then(response => {
-                        this.webContent = response.body;
-                        var thisVue = this;
-                        //查询历史净值
-                        jquery(this.webContent)
-                            .find('.ui-table-hover')
-                            .each(function (index, domEle) {
-                                    if (index == 2) {
-                                        //console.log(index + ":" + domEle.innerHTML);
-                                        for (var i = 1; i < domEle.rows.length; i++) {
-                                            console.log(domEle.rows[i].cells[2].innerHTML)
-                                            thisVue.addData(domEle.rows[i].cells[0].innerHTML, domEle.rows[i].cells[2].innerHTML)
-                                        }
-                                    }
-                                }
-                            );
-                        //查询最新估值
-                        var guzhi;
-                        jquery(this.webContent)
-                            .find('.floatleft.fundZdf')
-                            .each(function (index, domEle) {
-                                    console.log("ddddddddd5:" + domEle.innerHTML)
-                                    guzhi = thisVue.find(domEle.innerHTML, />[\s\S]*?</, 1, 1)
-                                    console.log("ddddddddd4:" + guzhi)
-                                }
-                            );
-                        //查询最新估值时间
-                        var guzhiTime;
-                        jquery(this.webContent)
-                            .find('#gz_gztime')
-                            .each(function (index, domEle) {
-                                    guzhiTime = domEle.innerHTML.substring(4, 9);
-                                    console.log("ddddddddd3:" + guzhiTime)
-                                }
-                            );
-                        this.addEstimateData(guzhiTime, guzhi)
-                        this.fillData();
+                        this.result = response.body;
+                        this.updateData(0);
                     }, response => {
                         console.log("ddddddddd3:")
                     }
@@ -143,55 +104,23 @@
                 this.yyData = [];
                 this.xxData = [];
             },
-            addData(name, value) {
-                this.yyData.push(value)
-                this.xxData.push(name)
-            },
-            addEstimateData(name, value) {
-                var last = this.xxData[0];
-                if (last != name) {
-                    var lastValue = this.yyData[0];
-                    var fuhao = value.substring(0, 1);
-                    var tempValue = value.substring(1);
-                    var trueValue;
-                    if (fuhao == '+') {
-                        trueValue = parseFloat(lastValue) + parseFloat(tempValue);
-                    } else {
-                        trueValue = parseFloat(lastValue) - parseFloat(tempValue);
-                    }
-                    this.yyData.unshift(trueValue.toString())
-                    this.xxData.unshift(name)
-                }
-            },
-            fillData () {
-                this.updateYAxis();
-                this.bar.series[0].data = this.yyData.reverse()
-                this.bar.xAxis.data = this.xxData.reverse()
+            updateData (type) {
+                this.xxData = this.result.data[type].x;
+                this.yyData = this.result.data[type].y;
 
+                this.bar.yAxis.min = this.result.data[type].minY;
+                this.bar.yAxis.max = this.result.data[type].maxY;
+
+                this.bar.series[0].data = this.yyData
+                this.bar.xAxis.data = this.xxData
+
+                //handle markPoint
                 var value = parseFloat(this.yyData[this.yyData.length-1])
                 this.bar.series[0].markPoint.data[0].value = value
                 this.bar.series[0].markPoint.data[0].yAxis = value
                 this.bar.series[0].markPoint.data[0].xAxis = this.xxData[this.xxData.length-1]
+
                 this.loading = false
-            },
-            onReady(instance) {
-                console.log(instance);
-            },
-            updateYAxis() {
-                var min = parseFloat(this.yyData[0]);
-                var max = parseFloat(this.yyData[0]);
-                for (var i=0;i<this.yyData.length;i++)
-                {
-                    if(min>parseFloat(this.yyData[i])){
-                        min = parseFloat(this.yyData[i]);
-                    }
-                    if(max<parseFloat(this.yyData[i])){
-                        max = parseFloat(this.yyData[i]);
-                    }
-                }
-                var padding = (max - min)/6;
-                this.bar.yAxis.min = min-padding;
-                this.bar.yAxis.max = max+padding;
             },
             find(source, regExp, start, end) {
                 try {

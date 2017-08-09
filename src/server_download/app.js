@@ -197,19 +197,27 @@ router.get('/data', function (req, res) {
         data: [
             {
                 y: [],
-                x: []
+                x: [],
+                minY:0,
+                maxY:0
             },
             {
                 y: [],
-                x: []
+                x: [],
+                minY:0,
+                maxY:0
             },
             {
                 y: [],
-                x: []
+                x: [],
+                minY:0,
+                maxY:0
             },
             {
                 y: [],
-                x: []
+                x: [],
+                minY:0,
+                maxY:0
             }
         ]
     }
@@ -236,21 +244,49 @@ router.get('/data', function (req, res) {
         }
     }
     //handle result 22  66  132  264
+    var min = parseFloat(objects[0].totalnet);
+    var max = parseFloat(objects[0].totalnet);
+    var paddingMin,paddingMax;
     for (var i = 0; i < objects.length && i < 264; i++) {
+        if(min>parseFloat(objects[i].totalnet)){
+            min = parseFloat(objects[i].totalnet);
+        }
+        if(max<parseFloat(objects[i].totalnet)){
+            max = parseFloat(objects[i].totalnet);
+        }
+        // var padding =Number(Number(max).sub(min)).div(6);
+        // paddingMin = Number(min).sub(padding);
+        // paddingMax = Number(max).add(padding);
+        var padding = (max - min)/6;
+        paddingMin =parseFloat((min-padding).toFixed(4));
+        paddingMax =parseFloat( (max+padding).toFixed(4));
+
         if(i<22){
             result.data[0].y.push(objects[i].totalnet)
             result.data[0].x.push(objects[i].date)
+            result.data[0].minY = paddingMin;
+            result.data[0].maxY = paddingMax;
         }
         if(i<66){
             result.data[1].y.push(objects[i].totalnet)
             result.data[1].x.push(objects[i].date)
+            result.data[1].minY = paddingMin;
+            result.data[1].maxY = paddingMax;
         }
         if(i<132){
             result.data[2].y.push(objects[i].totalnet)
             result.data[2].x.push(objects[i].date)
+            result.data[2].minY = paddingMin;
+            result.data[2].maxY = paddingMax;
         }
         result.data[3].y.push(objects[i].totalnet)
         result.data[3].x.push(objects[i].date)
+        result.data[3].minY = paddingMin;
+        result.data[3].maxY = paddingMax;
+    }
+    for (var i = 0; i < 4; i++) {
+        result.data[i].y.reverse()
+        result.data[i].x.reverse()
     }
     //json to string
     tempData = JSON.stringify(result);
