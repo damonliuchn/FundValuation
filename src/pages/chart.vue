@@ -2,12 +2,12 @@
     <div class="column">
 
         <div class="row">
-            <el-input v-model="input" placeholder="请输入基金代码"></el-input>
+            <el-input v-model="input"  placeholder="请输入基金代码"></el-input>
             <el-button style="margin-left:5px" @click="search(1)" :disabled="searchButtonDisable">搜索</el-button>
         </div>
 
         <div class="echarts">
-            <ECharts :options="bar"  theme="macarons" auto-resize></ECharts>
+            <ECharts :options="bar" ref="chart" theme="macarons" auto-resize></ECharts>
             <div style="width:0px;height: 0px"></div>
         </div>
 
@@ -107,17 +107,17 @@
                 // 深度观察
                 deep:true
             },
-//            'input':{
-//                handler(val,oldVal) {
-//                    if(!val && val.length>0){
-//                        this.searchButtonDisable = false
-//                    }else {
-//                        this.searchButtonDisable = true
-//                    }
-//                },
-//                // 深度观察
-//                deep:true
-//            }
+            'input':{
+                handler(val,oldVal) {
+                    if(val && val.length>0 && !this.radioDisable){
+                        this.searchButtonDisable = false
+                    }else {
+                        this.searchButtonDisable = true
+                    }
+                },
+                // 深度观察
+                deep:true
+            }
         },
 
         components: {
@@ -125,8 +125,7 @@
         },
         methods: {
             search(type) {
-                this.radio3 = "月"
-                this.radioDisable = true;
+                this.showLoading();
 
                 var id = "110011";
                 if(type == 0){
@@ -136,14 +135,15 @@
                 }else{
                     id = this.input;
                 }
-
+                console.log("fundId="+id)
                 this.$http.get('http://' + window.document.location.host + '/data?fundId=' + id)
                     .then(response => {
                             this.result = response.body;
                             this.updateData(0);
-                            this.radioDisable = false;
+                            this.hideLoading()
                         }, response => {
                             console.log("ddddddddd3:")
+                            this.hideLoading()
                         }
                     );
             },
@@ -164,6 +164,25 @@
                 this.bar.series[0].markPoint.data[0].xAxis = this.xxData[this.xxData.length-1]
 
                 this.loading = false
+            },
+            showLoading(){
+                this.bar.series[0].data = []
+                this.bar.xAxis.data = []
+                this.$refs.chart.showLoading({
+                    text: '正在加载',
+                    color: '#4ea397',
+                    maskColor: 'rgba(255, 255, 255, 0.4)'
+                })
+                this.radio3 = "月"
+                this.radioDisable = true;
+                this.searchButtonDisable = true;
+            },
+            hideLoading(){
+                this.$refs.chart.hideLoading()
+                this.radioDisable = false;
+                if(this.input.length>0){
+                    this.searchButtonDisable = false;
+                }
             }
         },
     }
@@ -172,20 +191,20 @@
 
 <style scoped>
     .column {
-        display: -webkit-flex; /* Safari */
+        /*display: -webkit-flex; !* Safari *!*/
         display: flex;
         flex-direction: column;
         align-items:center;
     }
     .row{
-        display: -webkit-flex; /* Safari */
+        /*display: -webkit-flex; !* Safari *!*/
         display: flex;
         flex-direction: row;
         align-items:center;
     }
     .echarts {
         width: 100%;
-        margin-top: -15px;
+        margin-top: 0px;
         margin-bottom: -35px;
         /*height: auto;*/
         /*flex-direction:column;*/
