@@ -36,6 +36,39 @@ Date.prototype.yyyymmdd = function() {
         (dd>9 ? '' : '0') + dd
     ].join('-');
 };
+//加法
+Number.prototype.add = function(arg){
+    var r1,r2,m;
+    try{r1=this.toString().split(".")[1].length}catch(e){r1=0}
+    try{r2=arg.toString().split(".")[1].length}catch(e){r2=0}
+    m=Math.pow(10,Math.max(r1,r2))
+    return (this*m+arg*m)/m
+}
+//减法
+Number.prototype.sub = function (arg){
+    return this.add(-arg);
+}
+
+//乘法
+Number.prototype.mul = function (arg)
+{
+    var m=0,s1=this.toString(),s2=arg.toString();
+    try{m+=s1.split(".")[1].length}catch(e){}
+    try{m+=s2.split(".")[1].length}catch(e){}
+    return Number(s1.replace(".",""))*Number(s2.replace(".",""))/Math.pow(10,m)
+}
+
+//除法
+Number.prototype.div = function (arg){
+    var t1=0,t2=0,r1,r2;
+    try{t1=this.toString().split(".")[1].length}catch(e){}
+    try{t2=arg.toString().split(".")[1].length}catch(e){}
+    with(Math){
+        r1=Number(this.toString().replace(".",""))
+        r2=Number(arg.toString().replace(".",""))
+        return (r1/r2)*pow(10,t2-t1);
+    }
+}
 
 function find(source, regExp, start, end) {
     try {
@@ -77,9 +110,21 @@ router.get('/forward_get', function (req, res) {
     res.end(data);
 });
 
+router.get('/test', function (req, res) {
+    // var lastValue = "1.2";
+    // var fuhao = "+1.2";
+    // var changeValue = "-1.1";
+    // var nowValue;
+    // nowValue = math.add(parseFloat(lastValue) , parseFloat(fuhao));
+    // console.log(nowValue.toString())
+    // nowValue = Number(parseFloat(lastValue)).add(parseFloat(changeValue));
+    // console.log(nowValue.toString())
+    res.writeHead(200, {"Access-Control-Allow-Origin": "*"});
+    res.end("test");
+});
 
-function fundValution() {
-    var url = "http://fund.eastmoney.com/110011.html?spm=search"
+function fundValution(fundId) {
+    var url = "http://fund.eastmoney.com/"+fundId+".html?spm=search"
     var object = new Object;
     syncRequest(url, function (error, response, body) {
         if (!error && response.statusCode == 200) {
@@ -87,9 +132,9 @@ function fundValution() {
             jquery(body)
                 .find('.floatleft.fundZdf')
                 .each(function (index, domEle) {
-                        console.log("ddddddddd5:" + domEle.innerHTML)
+                        //console.log("ddddddddd5:" + domEle.innerHTML)
                         object.guzhi = find(domEle.innerHTML, />[\s\S]*?</, 1, 1)
-                        console.log("ddddddddd4:" + object.guzhi)
+                        //console.log("ddddddddd4:" + object.guzhi)
                     }
                 );
             //查询最新估值时间
@@ -97,7 +142,7 @@ function fundValution() {
                 .find('#gz_gztime')
                 .each(function (index, domEle) {
                         object.guzhiTime = "20" + domEle.innerHTML.substring(1, 9);
-                        console.log("ddddddddd3:" + object.guzhiTime)
+                        //console.log("ddddddddd3:" + object.guzhiTime)
                     }
                 );
         }
@@ -168,38 +213,21 @@ router.get('/data', function (req, res) {
             }
         ]
     }
-
-    var done = false;
-    var data;
-    request("http://fund.10jqka.com.cn/" + fundId + "/historynet.html", function (error, response, body) {
+    var tempData;
+    syncRequest("http://fund.10jqka.com.cn/" + fundId + "/historynet.html", function (error, response, body) {
         if (!error && response.statusCode == 200) {
-            data = find(body, /JsonData\s=\s\[.*?\];/, 11, 1);
+            tempData = find(body, /JsonData\s=\s\[.*?\];/, 11, 1);
         }
-        done = true;
     })
-    deasync.loopWhile(function () {
-        return !done;
-    });
-
-    //handle result
     //string to json
-    var objects = JSON.parse(data);
+    var objects = JSON.parse(tempData);
     //handle today's valuation
     var date = new Date();
-    date.yyyymmdd();
-    console.log("--"+date.yyyymmdd())
     if (date.yyyymmdd() != objects[0].data) {
-        var valuation = fundValution();
+        var valuation = fundValution(fundId);
         if(valuation.guzhiTime != objects[0].data){
             var lastValue = objects[0].totalnet;
-            var fuhao = valuation.guzhi.substring(0, 1);
-            var changeValue = valuation.guzhi.substring(1);
-            var nowValue;
-            if (fuhao == '+') {
-                nowValue = parseFloat(lastValue) + parseFloat(changeValue);
-            } else {
-                nowValue = parseFloat(lastValue) - parseFloat(changeValue);
-            }
+            var nowValue = Number(parseFloat(lastValue)).add(parseFloat(valuation.guzhi));
             var todayObject = new Object();
             todayObject.date = valuation.guzhiTime
             todayObject.totalnet = nowValue.toString()
@@ -225,10 +253,10 @@ router.get('/data', function (req, res) {
         result.data[3].x.push(objects[i].date)
     }
     //json to string
-    data = JSON.stringify(result);
-
+    tempData = JSON.stringify(result);
+    //set response
     res.writeHead(200, {"Access-Control-Allow-Origin": "*"});
-    res.end(data);
+    res.end(tempData);
 });
 
 
