@@ -2,9 +2,8 @@
     <div class="column">
 
         <div class="row">
-            <el-input v-model="input" placeholder="请输入内容"></el-input>
-            <div></div>
-            <el-button style="margin-left:5px">默认按钮</el-button>
+            <el-input v-model="input" placeholder="请输入基金代码"></el-input>
+            <el-button style="margin-left:5px" @click="search(1)" :disabled="searchButtonDisable">搜索</el-button>
         </div>
 
         <div class="echarts">
@@ -12,11 +11,11 @@
             <div style="width:0px;height: 0px"></div>
         </div>
 
-        <el-radio-group v-model="radio3">
-            <el-radio-button label="上海"></el-radio-button>
-            <el-radio-button label="北京"></el-radio-button>
-            <el-radio-button label="广州"></el-radio-button>
-            <el-radio-button label="深圳"></el-radio-button>
+        <el-radio-group v-model="radio3" :disabled="radioDisable">
+            <el-radio-button label="月"></el-radio-button>
+            <el-radio-button label="季"></el-radio-button>
+            <el-radio-button label="半年"></el-radio-button>
+            <el-radio-button label="年"></el-radio-button>
         </el-radio-group>
 
     </div>
@@ -43,6 +42,9 @@
         data() {
             return {
                 input: '',
+                searchButtonDisable:true,
+                radioDisable:true,
+                radio3: '月',
                 xxData: [],
                 yyData: [],
                 result:{},
@@ -82,27 +84,68 @@
         created () {
 
         },
-        mounted () {//110011
-            var id = this.$route.params.id;
-            if (!id) {
-                id = "110011"
-            }
-            this.$http.get('http://' + window.document.location.host + '/data?fundId=' + id)
-                .then(response => {
-                        this.result = response.body;
-                        this.updateData(0);
-                    }, response => {
-                        console.log("ddddddddd3:")
-                    }
-                );
+        mounted () {
+            this.search(0)
         },
+        watch:{
+            // 通过这种语法来watch就行，文档里有。。。看需求，还可以直接watch data，使用deep:true来深度观察
+            'radio3':{
+                handler(val,oldVal) {
+                    if(!this.result){
+                        return
+                    }
+                    if(val == "月"){
+                        this.updateData(0);
+                    }else if(val == "季"){
+                        this.updateData(1);
+                    }else if(val == "半年"){
+                        this.updateData(2);
+                    }else if(val == "年"){
+                        this.updateData(3);
+                    }
+                },
+                // 深度观察
+                deep:true
+            },
+//            'input':{
+//                handler(val,oldVal) {
+//                    if(!val && val.length>0){
+//                        this.searchButtonDisable = false
+//                    }else {
+//                        this.searchButtonDisable = true
+//                    }
+//                },
+//                // 深度观察
+//                deep:true
+//            }
+        },
+
         components: {
             ECharts
         },
         methods: {
-            clearData() {
-                this.yyData = [];
-                this.xxData = [];
+            search(type) {
+                this.radio3 = "月"
+                this.radioDisable = true;
+
+                var id = "110011";
+                if(type == 0){
+                    if (typeof(this.$route.params.id)!="undefined"&&this.$route.params.id!=null) {
+                        id = this.$route.params.id
+                    }
+                }else{
+                    id = this.input;
+                }
+
+                this.$http.get('http://' + window.document.location.host + '/data?fundId=' + id)
+                    .then(response => {
+                            this.result = response.body;
+                            this.updateData(0);
+                            this.radioDisable = false;
+                        }, response => {
+                            console.log("ddddddddd3:")
+                        }
+                    );
             },
             updateData (type) {
                 this.xxData = this.result.data[type].x;
@@ -121,15 +164,6 @@
                 this.bar.series[0].markPoint.data[0].xAxis = this.xxData[this.xxData.length-1]
 
                 this.loading = false
-            },
-            find(source, regExp, start, end) {
-                try {
-                    var find = source.match(regExp)[0];
-                    return find.substring(start, find.length - end);
-                }
-                catch (e) {
-                    return "";
-                }
             }
         },
     }
