@@ -22,6 +22,15 @@ var deasync = require('deasync');
 var fileList = [];
 var request = require('request');
 
+function find(source, regExp, start, end) {
+    try {
+        var find = source.match(regExp)[0];
+        return find.substring(start, find.length - end);
+    }
+    catch (e) {
+        return "";
+    }
+}
 
 router.get('/forward_get', function(req, res) {
     var host = req.protocol + '://' + req.get('host');
@@ -32,6 +41,34 @@ router.get('/forward_get', function(req, res) {
     request(trueUrl, function (error, response, body) {
         if (!error && response.statusCode == 200) {
             data = body
+        }
+        done = true;
+    })
+    deasync.loopWhile(function(){return !done;});
+    res.writeHead(200, {"Access-Control-Allow-Origin":"*"});
+    res.end(data);
+});
+
+//http://fund.10jqka.com.cn/002881/historynet.html   JsonData = [{    }];
+//http://localhost:3242/data?fundId=110011&dayCount=365
+router.get('/data', function(req, res) {
+    var host = req.protocol + '://' + req.get('host');
+    var params = url.parse(req.url,true);
+    var fundId = params.query.fundId;
+    var dayCount = params.query.dayCount;
+    var done = false;
+    var data;
+    request("http://fund.10jqka.com.cn/"+fundId+"/historynet.html", function (error, response, body) {
+        if (!error && response.statusCode == 200) {
+            data = find(body,/JsonData\s=\s\[.*?\];/,11,1);
+            //string to json
+            var objects = JSON.parse(data);
+            var newObjects = [];
+            for (var i = 0; i < objects.length && i<dayCount; i++) {
+                newObjects.push(objects[i])
+            }
+            //json to string
+            data = JSON.stringify(newObjects);
         }
         done = true;
     })

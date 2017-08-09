@@ -38,8 +38,6 @@
     ]
     import mixins from '../mixins'
     //Vue.component('full-calendar', fullCalendar)
-    import Element from 'element-ui'
-    Vue.use(Element)
     //Vue.mixin(mixins)
     export default  {
         mixins:[mixins],
