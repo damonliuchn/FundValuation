@@ -1,8 +1,11 @@
 <template>
-    <div >
+    <div class="column">
 
-        <el-input v-model="input" placeholder="请输入内容"></el-input>
-        <el-button>默认按钮</el-button>
+        <div class="row">
+            <el-input v-model="input" placeholder="请输入内容"></el-input>
+            <div></div>
+            <el-button style="margin-left:5px">默认按钮</el-button>
+        </div>
 
         <div class="echarts">
             <ECharts :options="bar"  theme="macarons" auto-resize></ECharts>
@@ -47,7 +50,7 @@
                 loading: true,
                 bar: {
                     title: {
-                        text: '基金估值曲线'
+                        text: ''
                     },
                     tooltip : {
                         trigger: 'axis'
@@ -205,14 +208,22 @@
 </script>
 
 <style scoped>
-    .root {
+    .column {
+        display: -webkit-flex; /* Safari */
         display: flex;
-        width: 100%;
-        flex-direction:column;
+        flex-direction: column;
+        align-items:center;
+    }
+    .row{
+        display: -webkit-flex; /* Safari */
+        display: flex;
+        flex-direction: row;
+        align-items:center;
     }
     .echarts {
-        display: flex;
         width: 100%;
+        margin-top: -15px;
+        margin-bottom: -35px;
         /*height: auto;*/
         /*flex-direction:column;*/
         /*width: 800px;*/
