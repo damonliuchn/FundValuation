@@ -6,6 +6,8 @@
             <el-button style="margin-left:5px" @click="search(1)" :disabled="searchButtonDisable">搜索</el-button>
         </div>
 
+        <div class="row" style="padding-top: 5px">{{name}}</div>
+
         <div class="echarts">
             <ECharts :options="bar" ref="chart" theme="macarons" auto-resize></ECharts>
             <div style="width:0px;height: 0px"></div>
@@ -41,6 +43,7 @@
     export default {
         data() {
             return {
+                name:"",
                 input: '',
                 searchButtonDisable:true,
                 radioDisable:true,
@@ -150,7 +153,7 @@
             updateData (type) {
                 this.xxData = this.result.data[type].x;
                 this.yyData = this.result.data[type].y;
-
+                this.name = this.result.name;
                 this.bar.yAxis.min = this.result.data[type].minY;
                 this.bar.yAxis.max = this.result.data[type].maxY;
 
@@ -166,6 +169,7 @@
                 this.loading = false
             },
             showLoading(){
+                this.name = ""
                 this.bar.series[0].data = []
                 this.bar.xAxis.data = []
                 this.$refs.chart.showLoading({

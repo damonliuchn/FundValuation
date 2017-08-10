@@ -21,6 +21,7 @@ var url = require('url');
 var deasync = require('deasync');
 var fileList = [];
 var request = require('request');
+var iconv = require('iconv-lite');
 //jquery
 const jsdom = require("jsdom");
 const {JSDOM} = jsdom;
@@ -80,12 +81,24 @@ function find(source, regExp, start, end) {
     }
 }
 
-function syncRequest(url, callback) {
+function syncRequest(url, callback,encoding) {
     var done = false;
-    request(url, function (error, response, body) {
+
+    request({
+        encoding: null,
+        url: url
+    }, function (error, response, body) {
+        if(body){
+            if(encoding){
+                body = iconv.decode(body, encoding).toString();
+            }else{
+                body = iconv.decode(body, 'utf-8').toString();
+            }
+        }
         callback(error, response, body);
         done = true;
     })
+
     deasync.loopWhile(function () {
         return !done;
     });
@@ -111,13 +124,15 @@ router.get('/forward_get', function (req, res) {
 });
 
 router.get('/test', function (req, res) {
-    // var lastValue = "1.2";
-    // var fuhao = "+1.2";
-    // var changeValue = "-1.1";
-    // var nowValue;
-    // nowValue = math.add(parseFloat(lastValue) , parseFloat(fuhao));
-    // console.log(nowValue.toString())
-    // nowValue = Number(parseFloat(lastValue)).add(parseFloat(changeValue));
+    var url = "http://fund.eastmoney.com/110011.html?spm=search"
+    syncRequest(url, function (error, response, body) {
+        if (!error && response.statusCode == 200) {
+            //查询最新估值
+           var aa= find(body, /<title>[\s\S]*?\(/, 7, 1)
+
+            console.log("ddddddddd5:"+aa)
+        }
+    })
     // console.log(nowValue.toString())
     res.writeHead(200, {"Access-Control-Allow-Origin": "*"});
     res.end("test");
@@ -194,6 +209,7 @@ router.get('/data', function (req, res) {
 
     var result = {
         isValuation: false,
+        name:"",
         data: [
             {
                 y: [],
@@ -225,8 +241,9 @@ router.get('/data', function (req, res) {
     syncRequest("http://fund.10jqka.com.cn/" + fundId + "/historynet.html", function (error, response, body) {
         if (!error && response.statusCode == 200) {
             tempData = find(body, /JsonData\s=\s\[.*?\];/, 11, 1);
+            result.name = find(body, /<title>[\s\S]*?\(/, 7, 1)
         }
-    })
+    },'gb2312')
     //string to json
     var objects = JSON.parse(tempData);
     //handle today's valuation
@@ -289,8 +306,12 @@ router.get('/data', function (req, res) {
         result.data[i].x.reverse()
     }
     //json to string
+
     tempData = JSON.stringify(result);
     //set response
+    res.set({
+        'content-type': 'application/json'
+    })
     res.writeHead(200, {"Access-Control-Allow-Origin": "*"});
     res.end(tempData);
 });
