@@ -26,7 +26,7 @@ var iconv = require('iconv-lite');
 const jsdom = require("jsdom");
 const {JSDOM} = jsdom;
 const {window} = new JSDOM(`<!DOCTYPE html>`);
-const jquery = require('jQuery')(window);
+const jquery = require('jquery')(window);
 
 Date.prototype.yyyymmdd = function() {
     var mm = this.getMonth() + 1; // getMonth() is zero-based
