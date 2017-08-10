@@ -6,7 +6,7 @@
             <el-button style="margin-left:5px" @click="search(1)" :disabled="searchButtonDisable">搜索</el-button>
         </div>
 
-        <div class="row" style="padding-top: 5px">{{name}}</div>
+        <div class="row" style="padding-top: 10px">{{name}}</div>
 
         <div class="echarts">
             <ECharts :options="bar" ref="chart" theme="macarons" auto-resize></ECharts>
@@ -57,7 +57,10 @@
                         text: ''
                     },
                     tooltip : {
-                        trigger: 'axis'
+                        trigger: 'axis',
+//                        axisPointer: {
+//                            type: 'cross'
+//                        }
                     },
                     xAxis: {
                         data: []
@@ -70,9 +73,18 @@
                         name: '累计净值',
                         type: 'line',
                         data: [],
-                        markPoint: {
-                            data : [
-                                {name: '最新值', value: 0, xAxis: "", yAxis: 0}
+                        markArea: {
+                            data: [
+                                [
+                                    {
+                                        name: '估值',
+                                        xAxis: '',
+                                        itemStyle: { normal: { color: 'red' } }
+                                    },
+                                    {
+                                        xAxis: ''
+                                    }
+                                ]
                             ]
                         },
                         markLine: {
@@ -160,11 +172,21 @@
                 this.bar.series[0].data = this.yyData
                 this.bar.xAxis.data = this.xxData
 
-                //handle markPoint
-                var value = parseFloat(this.yyData[this.yyData.length-1])
-                this.bar.series[0].markPoint.data[0].value = value
-                this.bar.series[0].markPoint.data[0].yAxis = value
-                this.bar.series[0].markPoint.data[0].xAxis = this.xxData[this.xxData.length-1]
+                //handle markArea
+                if(this.result.isValuation){
+                    this.bar.series[0].markArea.data[0][0].xAxis = this.xxData[this.xxData.length-2]
+                    this.bar.series[0].markArea.data[0][1].xAxis = this.xxData[this.xxData.length-1]
+                    this.bar.series[0].markArea.data[0][0].name = "估值"
+                    if(parseFloat(this.yyData[this.yyData.length-1])>= parseFloat(this.yyData[this.yyData.length-2])){
+                        this.bar.series[0].markArea.data[0][0].itemStyle.normal.color = 'rgba(255,0,0,0.2)'
+                    }else{
+                        this.bar.series[0].markArea.data[0][0].itemStyle.normal.color = 'rgba(0,255,0,0.2)'
+                    }
+                }else{
+                    this.bar.series[0].markArea.data[0][0].xAxis = ""
+                    this.bar.series[0].markArea.data[0][1].xAxis = ""
+                    this.bar.series[0].markArea.data[0][0].name = ""
+                }
 
                 this.loading = false
             },
