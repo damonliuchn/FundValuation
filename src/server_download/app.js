@@ -274,7 +274,8 @@ router.get('/data', function (req, res) {
         // var padding =Number(Number(max).sub(min)).div(6);
         // paddingMin = Number(min).sub(padding);
         // paddingMax = Number(max).add(padding);
-        var padding = (max - min)/6;
+        var maxSubMinZhanbi = 20 / 50;
+        var padding = (max - min)*(1-maxSubMinZhanbi)/(2*maxSubMinZhanbi);
         paddingMin =parseFloat((min-padding).toFixed(4));
         paddingMax =parseFloat( (max+padding).toFixed(4));
 
