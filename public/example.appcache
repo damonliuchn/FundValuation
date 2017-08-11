@@ -1,0 +1,12 @@
+CACHE MANIFEST
+./dist/app.js
+./node_modules/vue/dist/vue.js
+
+# All other resources (e.g. sites) require the user to be online.
+NETWORK:
+*
+
+# offline.html will be displayed if the user is offline
+FALLBACK:
+
+
