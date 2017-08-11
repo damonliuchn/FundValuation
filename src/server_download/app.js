@@ -22,6 +22,8 @@ var deasync = require('deasync');
 var fileList = [];
 var request = require('request');
 var iconv = require('iconv-lite');
+const phantom = require('phantom');
+var fs = require("fs");
 //jquery
 const jsdom = require("jsdom");
 const {JSDOM} = jsdom;
@@ -37,6 +39,7 @@ Date.prototype.yyyymmdd = function() {
         (dd>9 ? '' : '0') + dd
     ].join('-');
 };
+
 //加法
 Number.prototype.add = function(arg){
     var r1,r2,m;
@@ -124,15 +127,50 @@ router.get('/forward_get', function (req, res) {
 });
 
 router.get('/test', function (req, res) {
-    var url = "http://fund.eastmoney.com/110011.html?spm=search"
-    syncRequest(url, function (error, response, body) {
-        if (!error && response.statusCode == 200) {
-            //查询最新估值
-           var aa= find(body, /<title>[\s\S]*?\(/, 7, 1)
+    var url = "http://fund.eastmoney.com/"+fundId+".html?spm=search"
+    var object = new Object;
 
-            console.log("ddddddddd5:"+aa)
-        }
-    })
+
+    var done = false;
+    var data;
+    phantom.create().then(function(ph) {
+        ph.createPage().then(function(page) {
+            page.open(url).then(function(status) {
+                //console.log(status);
+                page.property('content').then(function(content) {
+                    //console.log(content);
+                    data = content;
+                    page.close();
+                    ph.exit();
+                    done = true;
+                });
+            });
+        });
+    });
+    deasync.loopWhile(function () {
+        return !done;
+    });
+
+
+    var guzhi = find(data,/floatleft\sfundZdf[\s\S]*?span>/,19,0)
+    guzhi = find(guzhi,/>[\s\S]*?</,1,1)
+    object.guzhi = guzhi
+    var guzhiT = find(data,/gz_gztime[\s\S]*?</,11,7)
+    object.guzhiTime = guzhiT
+    console.log("guzhi:"+object.guzhi);
+    console.log("guzhiTime:"+object.guzhiTime);
+
+    var jingzhi = data.match(/ui-table-hover[\s\S]*?<\/table>/g)[2];
+    jingzhi = jingzhi.match(/<tr>[\s\S]*?<\/tr>/g)[1];
+    var jingzhiT = jingzhi.match(/<td[\s\S]*?<\/td>/g)[0];
+    jingzhiT = find(jingzhiT,/>[\s\S]*?</,1,1);
+    jingzhi  = jingzhi.match(/<td[\s\S]*?<\/td>/g)[2];
+    jingzhi = find(jingzhi,/>[\s\S]*?</,1,1);
+    object.jinzhi = jingzhi;
+    object.jinzhiTime = new Date().getFullYear()+"-" + jingzhiT;
+    console.log("jingzhi:"+object.jinzhi);
+    console.log("jingzhiT:"+object.jinzhiTime);
+
     // console.log(nowValue.toString())
     res.writeHead(200, {"Access-Control-Allow-Origin": "*"});
     res.end("test");
@@ -141,27 +179,47 @@ router.get('/test', function (req, res) {
 function fundValution(fundId) {
     var url = "http://fund.eastmoney.com/"+fundId+".html?spm=search"
     var object = new Object;
-    syncRequest(url, function (error, response, body) {
-        if (!error && response.statusCode == 200) {
-            //查询最新估值
-            jquery(body)
-                .find('.floatleft.fundZdf')
-                .each(function (index, domEle) {
-                        //console.log("ddddddddd5:" + domEle.innerHTML)
-                        object.guzhi = find(domEle.innerHTML, />[\s\S]*?</, 1, 1)
-                        //console.log("ddddddddd4:" + object.guzhi)
-                    }
-                );
-            //查询最新估值时间
-            jquery(body)
-                .find('#gz_gztime')
-                .each(function (index, domEle) {
-                        object.guzhiTime = "20" + domEle.innerHTML.substring(1, 9);
-                        //console.log("ddddddddd3:" + object.guzhiTime)
-                    }
-                );
-        }
-    })
+
+
+    var done = false;
+    var data;
+    phantom.create().then(function(ph) {
+        ph.createPage().then(function(page) {
+            page.open(url).then(function(status) {
+                //console.log(status);
+                page.property('content').then(function(content) {
+                    //console.log(content);
+                    data = content;
+                    page.close();
+                    ph.exit();
+                    done = true;
+                });
+            });
+        });
+    });
+    deasync.loopWhile(function () {
+        return !done;
+    });
+
+
+    var guzhi = find(data,/floatleft\sfundZdf[\s\S]*?span>/,19,0)
+    guzhi = find(guzhi,/>[\s\S]*?</,1,1)
+    console.log(guzhi);
+    object.guzhi = guzhi
+    var guzhiT = find(data,/gz_gztime[\s\S]*?</,11,7)
+    object.guzhiTime = guzhiT
+
+
+    var jingzhi = data.match(/ui-table-hover[\s\S]*?<\/table>/g)[2];
+    jingzhi = jingzhi.match(/<tr>[\s\S]*?<\/tr>/g)[1];
+    var jingzhiT = jingzhi.match(/<td[\s\S]*?<\/td>/g)[0];
+    jingzhiT = find(jingzhiT,/>[\s\S]*?</,1,1);
+    jingzhi  = jingzhi.match(/<td[\s\S]*?<\/td>/g)[2];
+    jingzhi = find(jingzhi,/>[\s\S]*?</,1,1);
+    console.log(jingzhi);
+    console.log(jingzhiT);
+    object.jinzhi = jingzhi;
+    object.jinzhiTime = new Date().getFullYear()+"-" + jingzhiT;
     return object;
 }
 
@@ -248,9 +306,19 @@ router.get('/data', function (req, res) {
     var objects = JSON.parse(tempData);
     //handle today's valuation
     var date = new Date();
-    if (date.yyyymmdd() != objects[0].data) {
+    // console.log("ddddddddd3date.yyyymmdd():" + date.yyyymmdd())
+    if (date.yyyymmdd() != objects[0].date) {//爱基金 和 当天不一样，说明  爱基金是今天以前的
         var valuation = fundValution(fundId);
-        if(valuation.guzhiTime != objects[0].data){
+
+        // console.log("ddddddddd3objects[0].date:" + objects[0].date)
+        // console.log("ddddddddd3valuation.guzhiTime:" + valuation.guzhiTime)
+        if(valuation.jinzhiTime != objects[0].date){//天天基金比 爱基金更新快，如果他俩不一样，那么肯定天天基金的最新
+            var tiantianObject = new Object();
+            tiantianObject.date = valuation.jinzhiTime
+            tiantianObject.totalnet = valuation.jinzhi.toString()
+            objects.unshift(tiantianObject)
+        }
+        if(valuation.jinzhiTime != valuation.guzhiTime){//天天基金的最新 和 估值时间 不一样，说明现在有估值
             var lastValue = objects[0].totalnet;
             var nowValue = Number(parseFloat(lastValue)).add(parseFloat(valuation.guzhi));
             var todayObject = new Object();
